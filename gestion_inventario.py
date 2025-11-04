@@ -23,104 +23,134 @@ import os
 # ======================================================
 
 class Proveedor:
-    def __init__(self, nombre, contacto):
-        # TODO: definir los atributos de la clase
-        pass
+    def __init__(self, codigo:str, nombre:str, contacto:str)->None:
+        self.codigo=codigo
+        self.nombre=nombre
+        self.contacto=contacto
 
-    def __str__(self):
-        # TODO: devolver una cadena legible con el nombre y el contacto del proveedor
-        pass
+    def obtener_nombre_proveedor(self):
+        self.nombre
+    
+    def obtener_contacto_proveedor(self):
+        self.contacto
+    
+    def __str__(self)->str:
+        return f"Codigo: {self.codigo}, Nombre: {self.nombre}, Contacto: {self.contacto}"
 
+    def to_dict(self)->dict:
+        return {
+            "codigo":self.codigo,
+            "nombre":self.nombre,
+            "contacto":self.contacto
+        }
+    
+    def from_dict(cls,datos:dict)->"Proveedor":
+        return cls(datos["codigo"],datos["nombre"],datos["contacto"])
 
 # ======================================================
 # Clase Producto
 # ======================================================
 
 class Producto:
-    def __init__(self, codigo, nombre, precio, stock, proveedor):
-        # TODO: definir los atributos de la clase
-        pass
-
-    def __str__(self):
-        # TODO: devolver una representación legible del producto
+    def __init__(self, codigo:str, nombre:str, precio:float, stock:int,proveedor):
+        self.codigo=codigo
+        self.nombre=nombre
+        self.precio=precio
+        self.stock=stock
+        self.proveedor=Proveedor
+    
+    def __str__(self)->str:
+        return f"[{self.codigo}] {self.nombre} - {self.precio} ({self.stock} | Proveedor: {self.proveedor.obtener_nombre_proveedor(self)} ({self.proveedor.obtener_contacto_proveedor(self)}))"
         # Ejemplo: "[P001] Teclado - 45.99 € (10 uds.) | Proveedor: TechZone (ventas@techzone.com)"
-        pass
 
+    def to_dict(self)->dict:
+        return {
+            "codigo":self.codigo,
+            "nombre":self.nombre,
+            "precio":self.precio,
+            "stock":self.stock,
+            "proveedor":self.proveedor
+        }
+    
+    def from_dict(cls,datos:dict)->"Producto":
+        return cls(datos["codigo"],datos["nombre"],datos["precio"],datos["stock"],datos["proveedor"])
 
 # ======================================================
 # Clase Inventario
 # ======================================================
 
 class Inventario:
-    def __init__(self, nombre_fichero):
-        # TODO: definir los atributos e inicializar la lista de productos
-        pass
+    def __init__(self, nombre_fichero:str)->None:
+        self.productos:list[Producto]=[]
+        self.nombre_fichero=nombre_fichero
 
     def cargar(self):
-        """
-        Carga los datos del fichero JSON si existe y crea los objetos Producto y Proveedor.
-        Si el fichero no existe, crea un inventario vacío.
-        """
-        # TODO: implementar la lectura del fichero JSON y la creación de objetos
-        pass
+        fichero=self.nombre_fichero
+
+        if not os.path.exists(fichero):
+            print("El fichero no existe")
+        try:
+            with open(fichero,"r",encoding="UTF-8") as c:
+                list_dict=json.load(c)
+                self.productos=[Producto.from_dict(datos)for datos in list_dict]
+        except Exception as e:
+            print(f"Error: {e}")
+
 
     def guardar(self):
         """
         Guarda el inventario actual en el fichero JSON.
         Convierte los objetos Producto y Proveedor en diccionarios.
         """
-        # TODO: recorrer self.productos y guardar los datos en formato JSON
-        pass
-
-    def anadir_producto(self, producto):
-        """
-        Añade un nuevo producto al inventario si el código no está repetido.
-        """
-        # TODO: comprobar si el código ya existe y, si no, añadirlo
-        pass
+        fichero=self.nombre_fichero
+        try:
+            with open(fichero,"w",encoding="UTF-8") as f:
+                diccionario=self.productos.__dict__()
+                json.dump(diccionario,f,ensure_ascii=False)
+    
+    def anadir_producto(self, producto:Producto)->None:
+        existe=self.buscar(producto.codigo)
+        if existe:
+            print("El producto ya estaba en la lista")
+        else:
+            self.productos.append(producto)
+            print("Producto añadido")
 
     def mostrar(self):
-        """
-        Muestra todos los productos del inventario.
-        """
-        # TODO: mostrar todos los productos almacenados
-        pass
+        for prod in self.productos:
+            print(prod.__str__())
 
-    def buscar(self, codigo):
-        """
-        Devuelve el producto con el código indicado, o None si no existe.
-        """
-        # TODO: buscar un producto por código
-        pass
+    def buscar(self, codigo:str)->list[Producto]:
+       return [prod for prod in self.productos if prod.codigo.lower()==codigo.lower()]
 
     def modificar(self, codigo, nombre=None, precio=None, stock=None):
-        """
-        Permite modificar los datos de un producto existente.
-        """
-        # TODO: buscar el producto y actualizar sus atributos
-        pass
+        existe=self.buscar(codigo)
+        if existe:
+            for prod in self.productos:
+                if  prod.codigo.lower()==codigo:
+                    prod.nombre=nombre
+                    prod.precio=precio
+                    prod.stock=stock
+        else:
+            print("El producto no está en la lista")
 
-    def eliminar(self, codigo):
-        """
-        Elimina un producto del inventario según su código.
-        """
-        # TODO: eliminar el producto de la lista
-        pass
+    def eliminar(self, codigo:str)->None:
+        existe=self.buscar(codigo)
+        if existe:
+            producto=existe[0]
+            self.productos.remove(producto)
+            print("Producto eliminado")
+        else:
+            print("El producto no se ha encontrado")
 
-    def valor_total(self):
-        """
-        Calcula y devuelve el valor total del inventario (precio * stock).
-        """
-        # TODO: devolver la suma total del valor del stock
-        pass
 
-    def mostrar_por_proveedor(self, nombre_proveedor):
-        """
-        Muestra todos los productos de un proveedor determinado.
-        Si no existen productos de ese proveedor, mostrar un mensaje.
-        """
-        # TODO: filtrar y mostrar los productos de un proveedor concreto
-        pass
+    def valor_total(self)->int:
+        return sum(prod.precio*prod.stock for prod in self.productos)
+    
+    def mostrar_por_proveedor(self, nombre_proveedor:str):
+        for prod in self.productos:
+            if (prod.proveedor.obtener_nombre_proveedor().lower()==nombre_proveedor.lower()):
+                print(prod.__str__())
 
 
 # ======================================================
